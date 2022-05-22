@@ -1,5 +1,3 @@
-// This file contains a full demo of most available features, for both testing
-// and for reference
 package main
 
 import (
