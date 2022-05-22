@@ -1,5 +1,7 @@
 # distrobox-tui
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/hyperreal64/distrobox-tui)](https://goreportcard.com/report/github.com/hyperreal64/distrobox-tui)
+
 ![screenshot.png](/screenshot.png)
 
 A minimal TUI for [Distrobox](https://github.com/89luca89/distrobox) using [Bubbletea](https://github.com/charmbracelet/bubbletea).
@@ -7,7 +9,9 @@ A minimal TUI for [Distrobox](https://github.com/89luca89/distrobox) using [Bubb
 My intention is to learn the Bubbletea framework by creating something (sort of?) useful.
 ## Install
 
-* Requires Go 1.18+
+### Requirements
+* Go 1.18+
+* Distrobox
 
 ```bash
 go install github.com/hyperreal64/distrobox-tui@latest
