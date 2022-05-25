@@ -94,7 +94,7 @@ func NewModel() Model {
 			Border(customBorder).
 			WithKeyMap(keys).
 			WithStaticFooter("Footer!").
-			WithPageSize(5).
+			WithPageSize(10).
 			WithBaseStyle(
 				lipgloss.NewStyle().
 					BorderForeground(lipgloss.AdaptiveColor{Light: "#1b181b", Dark: "#575268"}).
