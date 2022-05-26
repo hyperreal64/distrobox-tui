@@ -6,6 +6,8 @@
 
 A minimal TUI for [Distrobox](https://github.com/89luca89/distrobox) using [Bubbletea](https://github.com/charmbracelet/bubbletea).
 
+Features [Catppuccin](https://github.com/catppuccin/catppuccin) color palette. Support for theme selection coming in future release.
+
 My intention is to learn the Bubbletea framework by creating something (sort of?) useful.
 ## Install
 

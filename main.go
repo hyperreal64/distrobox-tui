@@ -67,14 +67,14 @@ func NewModel() Model {
 		table.NewColumn(columnKeyID, "ID", 15).WithStyle(
 			lipgloss.NewStyle().
 				Faint(true).
-				Foreground(lipgloss.AdaptiveColor{Light: "#7b59c0", Dark: "#ABE9B3"}),
+				Foreground(lipgloss.AdaptiveColor{Light: "#8839ef", Dark: "#cba6f7"}),
 		),
 		table.NewColumn(columnKeyName, "Name", 30),
 		table.NewColumn(columnKeyStatus, "Status", 30),
 		table.NewColumn(columnKeyImage, "Image", 70).WithStyle(
 			lipgloss.NewStyle().
 				Faint(true).
-				Foreground(lipgloss.AdaptiveColor{Light: "#ca402b", Dark: "#ABE9B3"}),
+				Foreground(lipgloss.AdaptiveColor{Light: "#8839ef", Dark: "#cba6f7"}),
 		),
 	}
 
@@ -88,7 +88,7 @@ func NewModel() Model {
 		tableModel: table.New(columns).
 			WithRows(rows).
 			HeaderStyle(lipgloss.NewStyle().
-				Foreground(lipgloss.AdaptiveColor{Light: "#379a37", Dark: "#DDB6F2"}).Bold(true)).
+				Foreground(lipgloss.AdaptiveColor{Light: "#40a02b", Dark: "#a6e3a1"}).Bold(true)).
 			SelectableRows(false).
 			Focused(true).
 			Border(customBorder).
@@ -97,14 +97,14 @@ func NewModel() Model {
 			WithPageSize(10).
 			WithBaseStyle(
 				lipgloss.NewStyle().
-					BorderForeground(lipgloss.AdaptiveColor{Light: "#1b181b", Dark: "#575268"}).
-					Foreground(lipgloss.AdaptiveColor{Light: "#695d69", Dark: "#D9E0EE"}).
+					BorderForeground(lipgloss.AdaptiveColor{Light: "#181825", Dark: "#313244"}).
+					Foreground(lipgloss.AdaptiveColor{Light: "#181825", Dark: "#c6d0f5"}).
 					Align(lipgloss.Left),
 			).
 			HighlightStyle(
 				lipgloss.NewStyle().
-					Background(lipgloss.AdaptiveColor{Light: "#ab9bab", Dark: "#575268"}).
-					Foreground(lipgloss.AdaptiveColor{Light: "#1b181b", Dark: "#C9CBFF"}),
+					Background(lipgloss.AdaptiveColor{Light: "#696d86", Dark: "#313244"}).
+					Foreground(lipgloss.AdaptiveColor{Light: "#181825", Dark: "#b4befe"}),
 			).
 			SortByAsc(columnKeyName),
 	}
@@ -177,7 +177,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View() defines what is displayed in the user interface
 func (m Model) View() string {
 	titleStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#516aec", Dark: "#96CDFB"}).
+		Foreground(lipgloss.AdaptiveColor{Light: "#1e66f5", Dark: "#87b0f9"}).
 		Bold(true)
 
 	bodyStyle := lipgloss.NewStyle()
