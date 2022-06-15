@@ -104,7 +104,7 @@ func getDistroboxItems() (items []distroboxItem) {
 	if len(ociCmdOutput) > 0 {
 		for _, cmdOutputJsonElem := range ociCmdOutput {
 			for _, mount := range cmdOutputJsonElem.Mounts {
-				if mount == "/usr/bin/distrobox-host-exec" {
+				if mount == "/usr/bin/distrobox-export" {
 					box := distroboxItem{
 						id:     cmdOutputJsonElem.Id[:12],
 						name:   cmdOutputJsonElem.Names[0],
