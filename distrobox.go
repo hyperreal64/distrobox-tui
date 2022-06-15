@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -34,7 +35,8 @@ func clearScreen() tea.Cmd {
 }
 
 func enterDistroBox(name string) tea.Cmd {
-	cmd := exec.Command("distrobox", "enter", name)
+	dbCmd := fmt.Sprintf("clear && distrobox enter %s", name)
+	cmd := exec.Command("/bin/sh", "-c", dbCmd)
 	return tea.ExecProcess(cmd, func(err error) tea.Msg {
 		return distroboxFinishedMsg{err}
 	})
