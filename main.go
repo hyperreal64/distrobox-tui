@@ -17,29 +17,6 @@ const (
 	columnKeyImage  = "image"
 )
 
-// Border definition
-var (
-	customBorder = table.Border{
-		Top:    "─",
-		Left:   "│",
-		Right:  "│",
-		Bottom: "─",
-
-		TopRight:    "╮",
-		TopLeft:     "╭",
-		BottomRight: "╯",
-		BottomLeft:  "╰",
-
-		TopJunction:    "┬",
-		LeftJunction:   "├",
-		RightJunction:  "┤",
-		BottomJunction: "┴",
-		InnerJunction:  "┼",
-
-		InnerDivider: "│",
-	}
-)
-
 type Model struct {
 	tableModel table.Model
 }
@@ -47,7 +24,7 @@ type Model struct {
 // getDataRows calls getDistroBoxItems() from distrobox.go
 // and returns the info as a slice of table.Row
 func getDataRows() (rows []table.Row) {
-	distroBoxItems := getDistroBoxItems()
+	distroBoxItems := getDistroboxItems()
 	for _, v := range distroBoxItems {
 		row := table.NewRow(table.RowData{
 			columnKeyID:     v.id,
@@ -61,21 +38,12 @@ func getDataRows() (rows []table.Row) {
 	return rows
 }
 
-// Create a new Model object
 func NewModel() Model {
 	columns := []table.Column{
-		table.NewColumn(columnKeyID, "ID", 15).WithStyle(
-			lipgloss.NewStyle().
-				Faint(true).
-				Foreground(lipgloss.AdaptiveColor{Light: "#8839ef", Dark: "#cba6f7"}),
-		),
+		table.NewColumn(columnKeyID, "ID", 15).WithStyle(idColumnStyle),
 		table.NewColumn(columnKeyName, "Name", 30),
 		table.NewColumn(columnKeyStatus, "Status", 30),
-		table.NewColumn(columnKeyImage, "Image", 70).WithStyle(
-			lipgloss.NewStyle().
-				Faint(true).
-				Foreground(lipgloss.AdaptiveColor{Light: "#8839ef", Dark: "#cba6f7"}),
-		),
+		table.NewColumn(columnKeyImage, "Image", 70).WithStyle(imageColumnStyle),
 	}
 
 	rows := getDataRows()
@@ -87,25 +55,14 @@ func NewModel() Model {
 	model := Model{
 		tableModel: table.New(columns).
 			WithRows(rows).
-			HeaderStyle(lipgloss.NewStyle().
-				Foreground(lipgloss.AdaptiveColor{Light: "#40a02b", Dark: "#a6e3a1"}).Bold(true)).
+			HeaderStyle(headerStyle).
 			SelectableRows(false).
 			Focused(true).
 			Border(customBorder).
 			WithKeyMap(keys).
-			WithStaticFooter("Footer!").
 			WithPageSize(10).
-			WithBaseStyle(
-				lipgloss.NewStyle().
-					BorderForeground(lipgloss.AdaptiveColor{Light: "#181825", Dark: "#313244"}).
-					Foreground(lipgloss.AdaptiveColor{Light: "#181825", Dark: "#c6d0f5"}).
-					Align(lipgloss.Left),
-			).
-			HighlightStyle(
-				lipgloss.NewStyle().
-					Background(lipgloss.AdaptiveColor{Light: "#696d86", Dark: "#313244"}).
-					Foreground(lipgloss.AdaptiveColor{Light: "#181825", Dark: "#b4befe"}),
-			).
+			WithBaseStyle(baseStyle).
+			HighlightStyle(highlightStyle).
 			SortByAsc(columnKeyName),
 	}
 
@@ -124,11 +81,21 @@ func (m Model) Init() tea.Cmd {
 func (m *Model) updateFooter() {
 	highlightedRow := m.tableModel.HighlightedRow()
 
-	footerText := fmt.Sprintf(
-		"Pg. %d/%d - Currently looking at: %s",
+	footerFormatStr := fmt.Sprintf(
+		"[Pg. %d/%d] Current selection: ",
 		m.tableModel.CurrentPage(),
-		m.tableModel.MaxPages(),
-		highlightedRow.Data[columnKeyName],
+		m.tableModel.MaxPages())
+
+	var boxNameFmtStr string
+	if highlightedRow.Data == nil {
+		boxNameFmtStr = "No distroboxes available"
+	} else {
+		boxNameFmtStr = fmt.Sprintf("%s", highlightedRow.Data[columnKeyName])
+	}
+
+	footerText := lipgloss.JoinHorizontal(
+		0, footerStyle.Render(footerFormatStr),
+		footerBoxNameStyle.Render(boxNameFmtStr),
 	)
 
 	m.tableModel = m.tableModel.WithStaticFooter(footerText)
@@ -153,10 +120,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "Q":
 			cmds = append(cmds, tea.Quit)
+			cmds = append(cmds, clearScreen())
 
 		case "enter":
 			boxName := m.tableModel.HighlightedRow().Data[columnKeyName].(string)
 			cmds = append(cmds, enterDistroBox(boxName))
+			cmds = append(cmds, clearScreen())
 
 		case "S":
 			boxName := m.tableModel.HighlightedRow().Data[columnKeyName].(string)
@@ -176,21 +145,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View() defines what is displayed in the user interface
 func (m Model) View() string {
-	titleStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#1e66f5", Dark: "#87b0f9"}).
-		Bold(true)
-
-	bodyStyle := lipgloss.NewStyle()
-
 	view := lipgloss.JoinVertical(
 		lipgloss.Left,
-		titleStyle.MarginTop(1).MarginBottom(1).Render("DistroBox TUI"),
-		lipgloss.JoinHorizontal(0, bodyStyle.Width(12).Render("Left/Right"), bodyStyle.MarginLeft(5).Render("change page")),
-		lipgloss.JoinHorizontal(0, bodyStyle.Width(12).Render("Enter"), bodyStyle.MarginLeft(5).Render("enter selected distrobox")),
-		lipgloss.JoinHorizontal(0, bodyStyle.Width(12).Render("S"), bodyStyle.MarginLeft(5).Render("stop selected distrobox")),
-		lipgloss.JoinHorizontal(0, bodyStyle.Width(12).Render("X"), bodyStyle.MarginLeft(5).Render("remove selected distrobox")),
-		lipgloss.JoinHorizontal(0, bodyStyle.Width(12).Render("R"), bodyStyle.MarginLeft(5).Render("refresh view")),
-		lipgloss.JoinHorizontal(0, bodyStyle.MarginBottom(1).Width(12).Render("Q"), bodyStyle.MarginLeft(5).Render("quit")),
+		titleStyle.MarginTop(1).MarginBottom(1).MarginLeft(1).Render("DistroBox TUI"),
+		lipgloss.JoinHorizontal(
+			0, subtleStyle.MarginRight(1).Render("[Left/right: change page]"),
+			subtleStyle.MarginLeft(1).MarginRight(1).Render("[Up/down, j/k: move]"),
+			subtleStyle.MarginLeft(1).MarginRight(1).Render("[Enter: enter distrobox]"),
+			subtleStyle.MarginLeft(1).MarginRight(1).Render("[S: stop]"),
+			subtleStyle.MarginLeft(1).MarginRight(1).Render("[X: remove]"),
+			subtleStyle.MarginLeft(1).MarginRight(1).Render("[R: refresh]"),
+			subtleStyle.MarginLeft(1).Render("[Q: quit]")),
 		m.tableModel.View(),
 	)
 

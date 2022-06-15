@@ -1,35 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"log"
+	"os"
 	"os/exec"
-	"regexp"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type distroboxFinishedMsg struct{ err error }
-
-func enterDistroBox(name string) tea.Cmd {
-	cmd := exec.Command("distrobox", "enter", name)
-	return tea.Exec(tea.WrapExecCommand(cmd), func(err error) tea.Msg {
-		return distroboxFinishedMsg{err}
-	})
-}
-
-func removeDistroBox(name string) tea.Cmd {
-	cmd := exec.Command("distrobox", "rm", name, "--force")
-	return tea.Exec(tea.WrapExecCommand(cmd), func(err error) tea.Msg {
-		return distroboxFinishedMsg{err}
-	})
-}
-
-func stopDistroBox(name string) tea.Cmd {
-	cmd := exec.Command("distrobox", "stop", name)
-	return tea.Exec(tea.WrapExecCommand(cmd), func(err error) tea.Msg {
-		return distroboxFinishedMsg{err}
-	})
-}
 
 type distroboxItem struct {
 	id     string
@@ -38,28 +18,104 @@ type distroboxItem struct {
 	image  string
 }
 
-func getDistroBoxItems() (items []distroboxItem) {
-	output, _ := exec.Command("distrobox", "list").Output()
+type OCICmdOutput []struct {
+	Id     string   `json:"Id"`
+	Image  string   `json:"Image"`
+	Mounts []string `json:"Mounts"`
+	Names  []string `json:"Names"`
+	Status string   `json:"Status"`
+}
 
-	const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
-	var re = regexp.MustCompile(ansi)
+func clearScreen() tea.Cmd {
+	cmd := exec.Command("clear")
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return distroboxFinishedMsg{err}
+	})
+}
 
-	outputString := re.ReplaceAllString(string(output), "")
-	outputSlice := strings.Split(outputString, "\n")
+func enterDistroBox(name string) tea.Cmd {
+	cmd := exec.Command("distrobox", "enter", name)
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return distroboxFinishedMsg{err}
+	})
+}
 
-	fieldSlice := [][]string{}
-	for i := 1; i < len(outputSlice)-1; i++ {
-		fieldSlice = append(fieldSlice, strings.Split(outputSlice[i], "|"))
+func removeDistroBox(name string) tea.Cmd {
+	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	for _, v := range fieldSlice {
-		name := strings.TrimSpace(v[1])
-		id := strings.TrimSpace(v[0])
-		status := strings.TrimSpace(v[2])
-		image := strings.TrimSpace(v[3])
+	cmd := exec.Command("distrobox", "rm", name, "--force")
+	cmd.Stdout = devnull
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return distroboxFinishedMsg{err}
+	})
+}
 
-		box := distroboxItem{id: id, name: name, status: status, image: image}
-		items = append(items, box)
+func stopDistroBox(name string) tea.Cmd {
+	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	cmd := exec.Command("distrobox", "stop", name, "--yes")
+	cmd.Stdout = devnull
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return distroboxFinishedMsg{err}
+	})
+}
+
+func getOCICmd() string {
+	podmanExists := true
+	dockerExists := true
+
+	podmanCmd, err := exec.LookPath("podman")
+	if err != nil {
+		podmanExists = false
+	}
+
+	dockerCmd, err := exec.LookPath("docker")
+	if err != nil {
+		dockerExists = false
+	}
+
+	if podmanExists {
+		return podmanCmd
+	} else if dockerExists {
+		return dockerCmd
+	} else {
+		return ""
+	}
+}
+
+func getDistroboxItems() (items []distroboxItem) {
+	ociCmd := getOCICmd()
+	if ociCmd == "" {
+		log.Fatalln("Missing dependency: we need a container manager. Please install one of podman or docker.")
+	}
+
+	rawOutput, _ := exec.Command(ociCmd, "ps", "-a", "--format", "json").Output()
+	var ociCmdOutput OCICmdOutput
+	if err := json.Unmarshal(rawOutput, &ociCmdOutput); err != nil {
+		log.Fatalln(err)
+	}
+
+	if len(ociCmdOutput) > 0 {
+		for _, cmdOutputJsonElem := range ociCmdOutput {
+			for _, mount := range cmdOutputJsonElem.Mounts {
+				if mount == "/usr/bin/distrobox-host-exec" {
+					box := distroboxItem{
+						id:     cmdOutputJsonElem.Id[:12],
+						name:   cmdOutputJsonElem.Names[0],
+						status: cmdOutputJsonElem.Status,
+						image:  cmdOutputJsonElem.Image,
+					}
+
+					items = append(items, box)
+				}
+			}
+		}
 	}
 
 	return items

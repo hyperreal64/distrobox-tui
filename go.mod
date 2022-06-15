@@ -3,14 +3,14 @@ module github.com/hyperreal64/distrobox-tui
 go 1.18
 
 require (
-	github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb
+	github.com/charmbracelet/bubbletea v0.21.0
 	github.com/charmbracelet/lipgloss v0.5.0
-	github.com/evertras/bubble-table v0.12.0
+	github.com/evertras/bubble-table v0.13.7
 )
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/charmbracelet/bubbles v0.10.3 // indirect
+	github.com/charmbracelet/bubbles v0.11.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
