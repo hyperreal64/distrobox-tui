@@ -20,8 +20,11 @@ type distroboxItem struct {
 }
 
 type OCICmdOutput []struct {
-	Id     string   `json:"Id"`
-	Image  string   `json:"Image"`
+	Id     string `json:"Id"`
+	Image  string `json:"Image"`
+	Labels struct {
+		Manager string `json:"manager"`
+	} `json:"Labels"`
 	Mounts []string `json:"Mounts"`
 	Names  []string `json:"Names"`
 	Status string   `json:"Status"`
@@ -104,14 +107,30 @@ func getDistroboxItems() (items []distroboxItem) {
 	}
 
 	if len(ociCmdOutput) > 0 {
-		for _, cmdOutputJsonElem := range ociCmdOutput {
-			for _, mount := range cmdOutputJsonElem.Mounts {
+
+		for _, jsonElem := range ociCmdOutput {
+			for _, mount := range jsonElem.Mounts {
 				if mount == "/usr/bin/distrobox-export" {
 					box := distroboxItem{
-						id:     cmdOutputJsonElem.Id[:12],
-						name:   cmdOutputJsonElem.Names[0],
-						status: cmdOutputJsonElem.Status,
-						image:  cmdOutputJsonElem.Image,
+						id:     jsonElem.Id[:12],
+						name:   jsonElem.Names[0],
+						status: jsonElem.Status,
+						image:  jsonElem.Image,
+					}
+
+					items = append(items, box)
+				}
+			}
+		}
+
+		if len(items) == 0 {
+			for _, jsonElem := range ociCmdOutput {
+				if jsonElem.Labels.Manager == "distrobox" {
+					box := distroboxItem{
+						id:     jsonElem.Id[:12],
+						name:   jsonElem.Names[0],
+						status: jsonElem.Status,
+						image:  jsonElem.Image,
 					}
 
 					items = append(items, box)
