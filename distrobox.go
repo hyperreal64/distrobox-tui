@@ -24,6 +24,7 @@ type distroboxItem struct {
 type OCICmdOutput struct {
 	Id     string `json:"ID"`
 	Image  string `json:"Image"`
+	Labels string `json:"Labels"`
 	Mounts string `json:"Mounts"`
 	Names  string `json:"Names"`
 	Status string `json:"Status"`
@@ -128,15 +129,22 @@ func getDistroboxItems() (items []distroboxItem) {
 
 	if len(items) == 0 {
 		for _, jsonElem := range outputs {
-			log.Printf("%+v\n", jsonElem)
-			box := distroboxItem{
-				id:     jsonElem.Id[:12],
-				name:   jsonElem.Names,
-				status: jsonElem.Status,
-				image:  jsonElem.Image,
-			}
+			labels := strings.Split(jsonElem.Labels, ",")
+			for _, label := range labels {
+				if label == "manager=distrobox" {
+					log.Printf("%+v\n", jsonElem)
+					box := distroboxItem{
+						id:     jsonElem.Id[:12],
+						name:   jsonElem.Names,
+						status: jsonElem.Status,
+						image:  jsonElem.Image,
+					}
 
-			items = append(items, box)
+					items = append(items, box)
+
+					break
+				}
+			}
 		}
 	}
 
