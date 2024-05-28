@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -19,15 +21,12 @@ type distroboxItem struct {
 	image  string
 }
 
-type OCICmdOutput []struct {
-	Id     string `json:"Id"`
+type OCICmdOutput struct {
+	Id     string `json:"ID"`
 	Image  string `json:"Image"`
-	Labels struct {
-		Manager string `json:"manager"`
-	} `json:"Labels"`
-	Mounts []string `json:"Mounts"`
-	Names  []string `json:"Names"`
-	Status string   `json:"Status"`
+	Mounts string `json:"Mounts"`
+	Names  string `json:"Names"`
+	Status string `json:"Status"`
 }
 
 func clearScreen() tea.Cmd {
@@ -46,7 +45,7 @@ func enterDistroBox(name string) tea.Cmd {
 }
 
 func removeDistroBox(name string) tea.Cmd {
-	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0o755)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -59,7 +58,7 @@ func removeDistroBox(name string) tea.Cmd {
 }
 
 func stopDistroBox(name string) tea.Cmd {
-	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0o755)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -99,43 +98,45 @@ func getDistroboxItems() (items []distroboxItem) {
 	if ociCmd == "" {
 		log.Fatalln("Missing dependency: we need a container manager. Please install one of podman or docker.")
 	}
+	var outputs []OCICmdOutput
 
-	rawOutput, _ := exec.Command(ociCmd, "ps", "-a", "--format", "json").Output()
-	var ociCmdOutput OCICmdOutput
-	if err := json.Unmarshal(rawOutput, &ociCmdOutput); err != nil {
-		log.Fatalln(err)
-	}
+	rawOutput, _ := exec.Command(ociCmd, "ps", "-a", "--format", "json", "--no-trunc").Output()
+	for _, line := range bytes.Split(rawOutput, []byte{'\n'}) {
+		if string(line) == "" {
+			continue
+		}
+		var ociCmdOutput OCICmdOutput
+		if err := json.Unmarshal(line, &ociCmdOutput); err != nil {
+			log.Fatalln(err)
+		}
+		outputs = append(outputs, ociCmdOutput)
 
-	if len(ociCmdOutput) > 0 {
-
-		for _, jsonElem := range ociCmdOutput {
-			for _, mount := range jsonElem.Mounts {
-				if mount == "/usr/bin/distrobox-export" {
-					box := distroboxItem{
-						id:     jsonElem.Id[:12],
-						name:   jsonElem.Names[0],
-						status: jsonElem.Status,
-						image:  jsonElem.Image,
-					}
-
-					items = append(items, box)
+		for _, mount := range strings.Split(ociCmdOutput.Mounts, ",") {
+			if strings.Contains(mount, "/distrobox-export") {
+				box := distroboxItem{
+					id:     ociCmdOutput.Id[:12],
+					name:   ociCmdOutput.Names,
+					status: ociCmdOutput.Status,
+					image:  ociCmdOutput.Image,
 				}
+
+				items = append(items, box)
+				break
 			}
 		}
+	}
 
-		if len(items) == 0 {
-			for _, jsonElem := range ociCmdOutput {
-				if jsonElem.Labels.Manager == "distrobox" {
-					box := distroboxItem{
-						id:     jsonElem.Id[:12],
-						name:   jsonElem.Names[0],
-						status: jsonElem.Status,
-						image:  jsonElem.Image,
-					}
-
-					items = append(items, box)
-				}
+	if len(items) == 0 {
+		for _, jsonElem := range outputs {
+			log.Printf("%+v\n", jsonElem)
+			box := distroboxItem{
+				id:     jsonElem.Id[:12],
+				name:   jsonElem.Names,
+				status: jsonElem.Status,
+				image:  jsonElem.Image,
 			}
+
+			items = append(items, box)
 		}
 	}
 
